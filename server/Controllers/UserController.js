@@ -1,7 +1,9 @@
 const { signToken } = require("../helpers/jwt");
+const { User } = require("../models");
+const { comparePassword } = require("../helpers/bcrypt");
 
 class UserController {
-  static async registerUser(req, res) {
+  static async registerUser(req, res, next) {
     const { name, email, password } = req.body;
     try {
       const newUser = await User.create({
@@ -17,65 +19,46 @@ class UserController {
       };
       res.status(201).json(result);
     } catch (error) {
-      console.log(error);
-      if (error.name === "SequelizeValidationError") {
-        res.status(400).json({ message: error.errors[0].message });
-      } else if (error.name === "SequelizeUniqueConstraintError") {
-        res.status(400).json({ message: "Email must be unique" });
-      } else {
-        res.status(500).send({ message: "Internal server error" });
-      }
+      next(error);
     }
   }
-  static async loginUser(req, res) {
+  static async loginUser(req, res, next) {
     try {
       const { email, password } = req.body;
 
-      if (!email) {
-        return res.status(400).json({ message: "Email is required" });
-      }
-
-      if (!password) {
-        return res.status(400).json({ message: "Password is required" });
-      }
+      if (!email) throw { name: "BadRequest", message: "Email is required" };
+      if (!password)
+        throw { name: "BadRequest", message: "Password is required" };
 
       const user = await User.findOne({ where: { email } });
-
-      if (!user) {
-        return res.status(400).json({ message: "Invalid email or password" });
-      }
-
-      const isValidPassword = comparePassword(password, user.password);
-      if (!isValidPassword) {
-        return res.status(400).json({ message: "Invalid email or password" });
+      if (!user || !comparePassword(password, user.password)) {
+        throw { name: "BadRequest", message: "Invalid email or password" };
       }
 
       const access_token = signToken({ id: user.id });
       res.json({ access_token });
     } catch (error) {
-      console.log(error);
-      res.status(500).json({ message: "Internal server error" });
+      next(error);
     }
   }
-  static async findUser(req, res) {
-    const userId = req.params.userId;
+
+  static async findUser(req, res, next) {
     try {
-      const user = await User.findByPk(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
+      const user = await User.findByPk(req.params.userId);
+      if (!user) throw { name: "NotFound", message: "User not found" };
+
       res.json(user);
     } catch (error) {
-      console.log(error);
-      res.status(500).json({ message: "Internal server error" });
+      next(error);
     }
   }
-  static async getUsers(req, res) {
+
+  static async getUsers(req, res, next) {
     try {
       const users = await User.findAll();
       res.json(users);
     } catch (error) {
-      console.log(error);
+      next(error);
     }
   }
 }
