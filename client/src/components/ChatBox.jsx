@@ -17,10 +17,10 @@ const ChatBox = () => {
   };
 
   // Dummy chat data
-  const currentChat = {
-    _id: "chat1",
-    members: ["user1", "user2"],
-  };
+  //   const currentChat = {
+  //     _id: "chat1",
+  //     members: ["user1", "user2"],
+  //   };
 
   // Dummy messages data
   const [messages, setMessages] = useState([
@@ -57,7 +57,10 @@ const ChatBox = () => {
   ]);
 
   const [textMessage, setTextMessage] = useState("");
-  const [isMessagesLoading, setIsMessagesLoading] = useState(false);
+  const [
+    isMessagesLoading,
+    // setIsMessagesLoading
+  ] = useState(false);
   const scroll = useRef();
 
   // Auto-scroll to the newest message
