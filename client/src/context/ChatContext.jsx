@@ -28,6 +28,26 @@ export const ChatContextProvider = ({ children }) => {
   const [potentialChats, setPotentialChats] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  const [aiSuggestion, setAiSuggestion] = useState("");
+  //!AI STUFF GEMINIII
+  const getAiSuggestion = useCallback(async (chatMessages) => {
+    try {
+      const response = await axios.post(
+        `${baseUrl}/messages/ai-suggestions`,
+        { messages: chatMessages },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          },
+        }
+      );
+      setAiSuggestion(response.data.suggestion);
+    } catch (error) {
+      console.error("Error fetching Gemini suggestion:", error);
+      setAiSuggestion("");
+    }
+  }, []);
+
   //BUAT NGEBUAT KONEKSI SOCKET BARU pas component mount
   useEffect(() => {
     const newSocket = io(`${baseUrl}`);
@@ -275,12 +295,14 @@ export const ChatContextProvider = ({ children }) => {
         messages,
         isLoading,
         unreadMessages,
+        aiSuggestion,
         getUnreadMessages,
         setCurrentChat,
         createChat,
         getMessages,
         sendMessage,
         markMessagesAsRead,
+        getAiSuggestion,
       }}
     >
       {children}

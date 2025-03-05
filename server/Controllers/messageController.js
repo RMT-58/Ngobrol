@@ -1,6 +1,59 @@
 const { Message, Chat } = require("../models");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+
+const genAI = new GoogleGenerativeAI(
+  "AIzaSyDYGMbX70GUHL0I0znuPyA234gadeylXZw"
+  // process.env.GOOGLE_API_KEY
+);
 
 class MessageController {
+  static async getAiSuggestion(req, res, next) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: "gemini-2.0-flash",
+      });
+
+      const { messages } = req.body;
+
+      console.log("Received messages:", messages);
+
+      // Convert messages to a conversation string
+      const conversationText = messages
+        .map(
+          (msg) =>
+            `${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`
+        )
+        .join("\n");
+
+      const prompt = `Based on this conversation, suggest a helpful response (keep it brief, maximum one sentence):
+  
+  ${conversationText}
+  
+  Response suggestion:`;
+
+      console.log("Sending formatted prompt to Gemini");
+
+      const result = await model.generateContent({
+        contents: [
+          {
+            parts: [{ text: prompt }],
+          },
+        ],
+      });
+
+      const suggestion = result.response.text();
+      console.log("Gemini suggestion:", suggestion);
+
+      res.status(200).json({ suggestion });
+    } catch (error) {
+      console.error("Gemini API error:", error);
+      res.status(500).json({
+        error: "Failed to get AI suggestion",
+        message: error.message,
+      });
+    }
+  }
+
   static async createMessage(req, res, next) {
     const { chatId, senderId, text } = req.body;
     try {
