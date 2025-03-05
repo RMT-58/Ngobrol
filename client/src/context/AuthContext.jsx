@@ -1,135 +1,110 @@
-import { useEffect } from "react";
-import { createContext, useCallback, useState } from "react";
+import { createContext, useCallback, useEffect, useState } from "react";
 import axios from "axios";
-import { baseUrl } from "../utils/service";
 
 export const AuthContext = createContext();
 
 export const AuthContextProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [registerError, setRegisterError] = useState(null);
-  const [isRegisterLoading, setIsRegisterLoading] = useState(false);
-  const [registerInfo, setRegisterInfo] = useState({
-    name: "",
-    email: "",
-    password: "",
-  });
-  const [loginError, setLoginError] = useState(null);
-  const [isLoginLoading, setIsLoginLoading] = useState(false);
-  const [loginInfo, setLoginInfo] = useState({
-    email: "",
-    password: "",
-  });
+  const [loading, setLoading] = useState(true);
 
-  // Token validation on app load
-  useEffect(() => {
-    const validateToken = async () => {
-      const token = localStorage.getItem("access_token");
-      const storedUser = localStorage.getItem("User");
+  const fetchCurrentUser = useCallback(async () => {
+    setLoading(true);
+    const token = localStorage.getItem("access_token");
 
-      if (token && storedUser) {
-        try {
-          // Add a token validation endpoint if your backend supports it
-          const response = await axios.get(`${baseUrl}/validate-token`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-
-          if (response.data.valid) {
-            setUser(JSON.parse(storedUser));
-          } else {
-            logoutUser();
-          }
-        } catch (error) {
-          console.log(error);
-          logoutUser();
-        }
-      }
-    };
-
-    validateToken();
-  }, []);
-
-  const updateRegisterInfo = useCallback((info) => {
-    setRegisterInfo(info);
-  }, []);
-
-  const updateLoginInfo = useCallback((info) => {
-    setLoginInfo(info);
-  }, []);
-
-  const registerUser = useCallback(
-    async (e) => {
-      e.preventDefault();
-
-      setIsRegisterLoading(true);
-      setRegisterError(null);
-
+    if (token) {
       try {
-        const response = await axios.post(
-          `${baseUrl}/users/register`,
-          registerInfo
+        axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
+        const userData = JSON.parse(atob(token.split(".")[1]));
+        const { data } = await axios.get(
+          `http://localhost:3000/users/find/${userData.id}`
         );
-
-        localStorage.setItem("User", JSON.stringify(response.data));
-        setUser(response.data);
-      } catch (error) {
-        setRegisterError({
-          error: true,
-          message: error.response?.data?.message || "Registration failed",
-        });
-      } finally {
-        setIsRegisterLoading(false);
-      }
-    },
-    [registerInfo]
-  );
-
-  const loginUser = useCallback(
-    async (e) => {
-      e.preventDefault();
-
-      setIsLoginLoading(true);
-      setLoginError(null);
-
-      try {
-        const { data } = await axios.post(`${baseUrl}/login`, loginInfo);
-
-        localStorage.setItem("access_token", data.access_token);
-        localStorage.setItem("User", JSON.stringify(data));
         setUser(data);
       } catch (error) {
-        setLoginError({
-          error: true,
-          message: error.response?.data?.message || "Login failed",
-        });
-      } finally {
-        setIsLoginLoading(false);
+        console.error("Error fetching current user:", error);
+        localStorage.removeItem("access_token");
       }
-    },
-    [loginInfo]
-  );
+    }
 
-  const logoutUser = useCallback(() => {
-    localStorage.removeItem("User");
+    setLoading(false);
+  }, []);
+
+  // REGISTERRRR
+  const register = async (username, email, password) => {
+    try {
+      const { data } = await axios.post(
+        "http://localhost:3000/users/register",
+        {
+          name: username,
+          email,
+          password,
+        }
+      );
+
+      return { success: true, data };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Registration failed",
+      };
+    }
+  };
+
+  //Login
+  const login = async (email, password) => {
+    try {
+      console.log("Attempting login with:", { email });
+
+      const response = await axios.post(
+        "http://localhost:3000/users/login",
+        {
+          email,
+          password,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        }
+      );
+
+      console.log("Login response:", response);
+
+      localStorage.setItem("access_token", response.data.access_token);
+      await fetchCurrentUser();
+
+      return { success: true };
+    } catch (error) {
+      console.error("Login error:", error);
+      console.error("Error response:", error.response?.data);
+
+      return {
+        success: false,
+        error: error.response?.data?.message || "Login failed",
+      };
+    }
+  };
+
+  //Logout
+  const logout = () => {
     localStorage.removeItem("access_token");
     setUser(null);
-  }, []);
+    axios.defaults.headers.common["Authorization"] = "";
+  };
+
+  useEffect(() => {
+    fetchCurrentUser();
+  }, [fetchCurrentUser]);
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        registerUser,
-        loginUser,
-        registerInfo,
-        updateRegisterInfo,
-        loginInfo,
-        updateLoginInfo,
-        loginError,
-        isLoginLoading,
-        registerError,
-        isRegisterLoading,
-        logoutUser,
+        loading,
+        register,
+        login,
+        logout,
       }}
     >
       {children}

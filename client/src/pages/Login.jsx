@@ -1,33 +1,43 @@
-import { React, useState } from "react";
+import { React, useState, useContext } from "react";
 import { Link, useNavigate } from "react-router";
-import axios from "axios";
 import Swal from "sweetalert2";
-import { baseUrl } from "../utils/service";
+import { AuthContext } from "../context/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useContext(AuthContext);
 
   const handleLogin = async (event) => {
     event.preventDefault();
+    setIsLoading(true);
+
     try {
-      const { data } = await axios.post(`${baseUrl}/users/login`, {
-        email,
-        password,
-      });
-      console.log(data);
-      localStorage.setItem("access_token", data.access_token);
-      navigate("/");
+      const result = await login(email, password);
+
+      if (result.success) {
+        navigate("/");
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Oops...",
+          text: result.error,
+        });
+      }
     } catch (err) {
       console.log(err);
       Swal.fire({
         icon: "error",
         title: "Oops...",
-        text: err.response.data.message,
+        text: "An unexpected error occurred",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
+
   const animatedTitleStyle = {
     fontFamily: "Fredoka One, sans-serif",
     fontSize: "3.5rem",
@@ -71,8 +81,9 @@ const Login = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 type="email"
                 className="form-control"
-                id="exampleInputEmail1"
+                id="email"
                 aria-describedby="emailHelp"
+                required
               />
             </div>
             <div className="mb-3">
@@ -84,15 +95,20 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 type="password"
                 className="form-control"
-                id="exampleInputPassword1"
+                id="password"
+                required
               />
             </div>
-            <button type="submit" className="btn btn-primary w-100">
-              Login
+            <button
+              type="submit"
+              className="btn btn-primary w-100"
+              disabled={isLoading}
+            >
+              {isLoading ? "Logging in..." : "Login"}
             </button>
             <div className="py-3">
               <p>
-                Dont have an account yet?
+                Don't have an account yet?
                 <Link to="/register"> Register</Link>
               </p>
             </div>
