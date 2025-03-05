@@ -9,13 +9,39 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
+      Message.belongsTo(models.Chat, {
+        foreignKey: "chatId",
+        as: "chat",
+      });
+      Message.belongsTo(models.User, {
+        foreignKey: "senderId",
+        as: "sender",
+      });
     }
   }
   Message.init(
     {
-      chatId: DataTypes.STRING,
-      senderId: DataTypes.STRING,
-      text: DataTypes.STRING,
+      chatId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+          model: "Chats",
+          key: "id",
+        },
+      },
+      senderId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+          model: "Users",
+          key: "id",
+        },
+      },
+
+      text: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+      },
     },
     {
       sequelize,

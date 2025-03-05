@@ -12,6 +12,12 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
+      User.belongsToMany(models.User, {
+        through: models.Chat,
+        as: "Contacts",
+        foreignKey: "userId",
+        otherKey: "contactId",
+      });
     }
   }
   User.init(
@@ -20,14 +26,12 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
         validate: {
-
           notNull: {
             msg: "Name is required",
           },
           notEmpty: {
             msg: "Name is required",
           },
-
         },
       },
       email: {
@@ -41,14 +45,12 @@ module.exports = (sequelize, DataTypes) => {
           notNull: { msg: "Email cannot be null" },
           notEmpty: { msg: "Email cannot be empty" },
           isEmail: { msg: "Invalid email format" },
-
         },
       },
       password: {
         type: DataTypes.STRING,
         allowNull: false,
         validate: {
-
           notNull: { msg: "Password cannot be null" },
           notEmpty: { msg: "Password cannot be empty" },
           len: {
@@ -60,7 +62,6 @@ module.exports = (sequelize, DataTypes) => {
       },
     },
     {
-
       hooks: {
         beforeCreate: (user) => {
           user.password = hashPassword(user.password);

@@ -10,14 +10,26 @@ module.exports = {
         type: Sequelize.INTEGER,
       },
       chatId: {
-        type: Sequelize.STRING,
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: "Chats",
+          key: "id",
+        },
       },
       senderId: {
-        type: Sequelize.STRING,
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: "Users",
+          key: "id",
+        },
       },
       text: {
-        type: Sequelize.STRING,
+        type: Sequelize.TEXT,
+        allowNull: false,
       },
+
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,

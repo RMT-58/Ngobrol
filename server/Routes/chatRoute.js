@@ -1,5 +1,5 @@
 const express = require("express");
-const ChatController = require("../Controllers/ChatController");
+const ChatController = require("../controllers/chatController");
 
 const router = express.Router();
 
