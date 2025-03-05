@@ -1,10 +1,134 @@
 import React, { useContext, useState, useEffect, useRef } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { ChatContext } from "../context/ChatContext";
-import { Card, Form, Button, InputGroup } from "react-bootstrap";
+import {
+  Card,
+  Form,
+  Button,
+  InputGroup,
+  OverlayTrigger,
+  Tooltip,
+} from "react-bootstrap";
 import { FiSend } from "react-icons/fi";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import moment from "moment";
 import avatar from "../assets/avatar.svg";
+
+const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
+
+const SentimentBadge = ({ message }) => {
+  const [sentiment, setSentiment] = useState(null);
+
+  const sentimentMap = {
+    // Positif
+    very_positive: {
+      color: "text-success",
+      icon: "🎉",
+      description: "Sangat Positif",
+      category: "Antusias",
+    },
+    positive: {
+      color: "text-success",
+      icon: "😊",
+      description: "Positif",
+      category: "Senang",
+    },
+    slightly_positive: {
+      color: "text-success",
+      icon: "🙂",
+      description: "Sedikit Positif",
+      category: "Optimis",
+    },
+
+    // Netral
+    neutral: {
+      color: "text-secondary",
+      icon: "😐",
+      description: "Netral",
+      category: "Objektif",
+    },
+
+    // Negatif
+    slightly_negative: {
+      color: "text-warning",
+      icon: "😕",
+      description: "Sedikit Negatif",
+      category: "Kurang Senang",
+    },
+    negative: {
+      color: "text-danger",
+      icon: "😞",
+      description: "Negatif",
+      category: "Sedih",
+    },
+    very_negative: {
+      color: "text-danger",
+      icon: "😡",
+      description: "Sangat Negatif",
+      category: "Marah",
+    },
+  };
+
+  const analyzeSentiment = async (text) => {
+    if (!text) return null;
+
+    try {
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+      const prompt = `Analyze the sentiment of the following message with high precision. 
+      Classify it into one of these categories:
+      - very_positive
+      - positive
+      - slightly_positive
+      - neutral
+      - slightly_negative
+      - negative
+      - very_negative
+
+      Provide ONLY the most appropriate classification.
+      
+      Message: "${text}"`;
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const sentimentText = response.text().toLowerCase().trim();
+
+      const validSentiments = Object.keys(sentimentMap);
+      const finalSentiment = validSentiments.includes(sentimentText)
+        ? sentimentText
+        : "neutral";
+
+      setSentiment(finalSentiment);
+      return finalSentiment;
+    } catch (error) {
+      console.error("Sentiment analysis error:", error);
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    analyzeSentiment(message);
+  }, [message]);
+
+  if (!sentiment) return null;
+
+  const sentimentStyle = sentimentMap[sentiment];
+
+  return (
+    <OverlayTrigger
+      placement="top"
+      overlay={
+        <Tooltip id="sentiment-tooltip">{sentimentStyle.description}</Tooltip>
+      }
+    >
+      <span
+        className={`ms-2 ${sentimentStyle.color}`}
+        style={{ cursor: "help" }}
+      >
+        {sentimentStyle.icon}
+      </span>
+    </OverlayTrigger>
+  );
+};
 
 const ChatBox = () => {
   const { user } = useContext(AuthContext);
@@ -99,7 +223,7 @@ const ChatBox = () => {
                 }`}
               >
                 <div
-                  className={`message-bubble p-3 rounded-3 ${
+                  className={`message-bubble p-3 rounded-3 position-relative ${
                     message.senderId === user?.id
                       ? "bg-primary text-white"
                       : "bg-light"
@@ -115,6 +239,7 @@ const ChatBox = () => {
                     }`}
                   >
                     {formatTimestamp(message.createdAt)}
+                    <SentimentBadge message={message.text} />
                   </div>
                 </div>
               </div>
