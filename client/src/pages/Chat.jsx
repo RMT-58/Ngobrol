@@ -10,21 +10,24 @@ const Chat = () => {
   const { user } = useContext(AuthContext);
   const { chats, onlineUsers } = useContext(ChatContext);
 
-  console.log("Chat component - user:", user);
-  console.log("Chat component - chats:", chats);
-  console.log("Chat component - onlineUsers:", onlineUsers);
-
   return (
-    <Container fluid className="h-100">
-      <Row className="h-100">
+    <Container
+      fluid
+      className="vh-100 d-flex flex-column p-0"
+      style={{ minHeight: "100vh" }}
+    >
+      <Row className="g-0 flex-grow-1">
         {/* Sidebar */}
         <Col
           md={4}
-          className="border-end h-100 overflow-auto"
-          style={{ maxHeight: "100vh" }}
+          className="border-end d-flex flex-column"
+          style={{ height: "100vh", overflow: "hidden" }}
         >
-          <div className="p-3">
+          <div className="p-3 flex-shrink-0">
             <h5 className="mb-3">Your Chats</h5>
+          </div>
+
+          <div className="overflow-auto flex-grow-1">
             {chats && chats.length > 0 ? (
               chats.map((chat) => (
                 <UserCard
@@ -41,10 +44,17 @@ const Chat = () => {
             )}
           </div>
 
-          <AllUser />
+          <div className="mt-auto p-3 flex-shrink-0">
+            <AllUser />
+          </div>
         </Col>
 
-        <Col md={8} className="h-100 d-flex flex-column">
+        {/* Chat Area */}
+        <Col
+          md={8}
+          className="d-flex flex-column p-0"
+          style={{ height: "100vh" }}
+        >
           <ChatBox />
         </Col>
       </Row>
