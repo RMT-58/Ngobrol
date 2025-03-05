@@ -223,9 +223,114 @@ const ChatBox = () => {
     );
   }
 
+  //   return (
+  //     <Card className="border-0 shadow-sm h-100 d-flex flex-column">
+  //       <Card.Header className="bg-white border-bottom p-3">
+  //         <div className="d-flex align-items-center">
+  //           <img
+  //             src={avatar}
+  //             alt="User Avatar"
+  //             className="rounded-circle me-3"
+  //             style={{ width: "40px", height: "40px", objectFit: "cover" }}
+  //           />
+  //           <div className="flex-grow-1">
+  //             <h5 className="mb-0">{recipientUser.name}</h5>
+  //           </div>
+  //         </div>
+  //       </Card.Header>
+
+  //       <Card.Body
+  //         className="p-3 flex-grow-1 overflow-auto"
+  //         style={{ maxHeight: "calc(100vh - 280px)" }}
+  //       >
+  //         {isLoading ? (
+  //           <div className="text-center p-4">
+  //             <span className="spinner-border spinner-border-sm text-primary me-2"></span>
+  //             Loading messages...
+  //           </div>
+  //         ) : messages.length === 0 ? (
+  //           <div className="text-center text-muted p-4">
+  //             No messages yet. Start the conversation!
+  //           </div>
+  //         ) : (
+  //           <div className="d-flex flex-column gap-3">
+  //             {messages.map((message, index) => (
+  //               <div
+  //                 key={index}
+  //                 className={`d-flex ${
+  //                   message.senderId === user?.id
+  //                     ? "justify-content-end"
+  //                     : "justify-content-start"
+  //                 }`}
+  //               >
+  //                 <div
+  //                   className={`message-bubble p-3 rounded-3 position-relative ${
+  //                     message.senderId === user?.id
+  //                       ? "bg-primary text-white"
+  //                       : "bg-light"
+  //                   }`}
+  //                   style={{ maxWidth: "75%", overflowWrap: "break-word" }}
+  //                 >
+  //                   <div>{message.text}</div>
+  //                   <div
+  //                     className={`text-end mt-1 small ${
+  //                       message.senderId === user?.id
+  //                         ? "text-white-50"
+  //                         : "text-muted"
+  //                     }`}
+  //                   >
+  //                     {formatTimestamp(message.createdAt)}
+  //                     <SentimentBadge message={message.text} />
+  //                   </div>
+  //                 </div>
+  //               </div>
+  //             ))}
+  //             <div ref={endOfMessagesRef} />
+  //           </div>
+  //         )}
+  //       </Card.Body>
+
+  //       {/* <button onClick={handleAISuggestionClick}>Get AI Suggestion</button>
+
+  //       {aiSuggestion && (
+  //         <div className="ai-suggestion">
+  //           <strong>AI Suggestion:</strong> {aiSuggestion}
+  //         </div>
+  //       )} */}
+
+  //       <Card.Footer className="bg-white border-top p-3">
+  //         <Form onSubmit={handleSubmit}>
+  //           <InputGroup>
+  //             <Form.Control
+  //               type="text"
+  //               placeholder="Type a message..."
+  //               value={textMessage}
+  //               onChange={(e) => setTextMessage(e.target.value)}
+  //               className="rounded-start"
+  //             />
+  //             {/* New button to get Gemini suggestion */}
+  //             <Button
+  //               variant="light"
+  //               className="ai-suggestion-btn"
+  //               onClick={handleAiSuggestionClick}
+  //             >
+  //               AI*
+  //             </Button>
+  //             <Button variant="primary" type="submit" disabled={isLoading}>
+  //               <FiSend />
+  //             </Button>
+  //           </InputGroup>
+  //         </Form>
+  //       </Card.Footer>
+  //     </Card>
+  //   );
+
   return (
-    <Card className="border-0 shadow-sm h-100 d-flex flex-column">
-      <Card.Header className="bg-white border-bottom p-3">
+    <Card
+      className="border-0 shadow-sm h-100 d-flex flex-column"
+      style={{ height: "100vh" }}
+    >
+      <Card.Header className="bg-white border-bottom p-3 flex-shrink-0">
         <div className="d-flex align-items-center">
           <img
             src={avatar}
@@ -241,7 +346,7 @@ const ChatBox = () => {
 
       <Card.Body
         className="p-3 flex-grow-1 overflow-auto"
-        style={{ maxHeight: "calc(100vh - 280px)" }}
+        style={{ height: "calc(100vh - 180px)" }}
       >
         {isLoading ? (
           <div className="text-center p-4">
@@ -249,8 +354,8 @@ const ChatBox = () => {
             Loading messages...
           </div>
         ) : messages.length === 0 ? (
-          <div className="text-center text-muted p-4">
-            No messages yet. Start the conversation!
+          <div className="text-center text-muted p-4 h-100 d-flex align-items-center justify-content-center">
+            <div>No messages yet. Start the conversation!</div>
           </div>
         ) : (
           <div className="d-flex flex-column gap-3">
@@ -290,15 +395,7 @@ const ChatBox = () => {
         )}
       </Card.Body>
 
-      {/* <button onClick={handleAISuggestionClick}>Get AI Suggestion</button>
-
-      {aiSuggestion && (
-        <div className="ai-suggestion">
-          <strong>AI Suggestion:</strong> {aiSuggestion}
-        </div>
-      )} */}
-
-      <Card.Footer className="bg-white border-top p-3">
+      <Card.Footer className="bg-white border-top p-3 flex-shrink-0">
         <Form onSubmit={handleSubmit}>
           <InputGroup>
             <Form.Control
