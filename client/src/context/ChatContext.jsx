@@ -1,35 +1,29 @@
-import { createContext, useCallback, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { io } from "socket.io-client";
+import { AuthContext } from "./AuthContext";
 import axios from "axios";
-import { baseUrl } from "../utils/service";
 
 export const ChatContext = createContext();
 
-export const ChatContextProvider = ({ children, user }) => {
-  const [userChats, setUserChats] = useState(null);
-  const [isUserChatsLoading, setIsUserChatsLoading] = useState(false);
-  const [userChatsError, setUserChatsError] = useState(null);
-  const [currentChat, setCurrentChat] = useState(null);
-  const [messages, setMessages] = useState(null);
-  const [messagesError, setMessagesError] = useState(null);
-  const [isMessagesLoading, setIsMessagesLoading] = useState(false);
+export const ChatContextProvider = ({ children }) => {
+  const { user } = useContext(AuthContext);
   const [socket, setSocket] = useState(null);
-  const [onlineUsers, setOnlineUsers] = useState(null);
-  const [sendTextMessageError, setSendTextMessageError] = useState(null);
+  const [onlineUsers, setOnlineUsers] = useState([]);
+  const [chats, setChats] = useState([]);
+  const [currentChat, setCurrentChat] = useState(null);
+  const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState(null);
-  const [potentialChats, setPotentialChats] = useState(null);
-  const [notifications, setNotifications] = useState([]);
-  const [allUsers, setAllUsers] = useState([]);
+  const [unreadMessages, setUnreadMessages] = useState([]);
+  const [potentialChats, setPotentialChats] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  console.log("userChats", userChats);
-  console.log("currentChat", currentChat);
-  console.log("messages", messages);
-  console.log("messagesError", messagesError);
-  console.log("onlineUsers", onlineUsers);
-  console.log("sendTextMessageError", sendTextMessageError);
-  console.log("notifications", notifications);
-
-  //init socket
+  // Initialize socket connection
   useEffect(() => {
     const newSocket = io("http://localhost:3000");
     setSocket(newSocket);
@@ -37,275 +31,215 @@ export const ChatContextProvider = ({ children, user }) => {
     return () => {
       newSocket.disconnect();
     };
-  }, [user]);
+  }, []);
 
-  //set users online
+  // Register user with socket when user logs in
   useEffect(() => {
-    if (socket === null) return;
-    socket.emit("addNewUser", user?.id);
-    socket.on("getUsers", (res) => {
-      setOnlineUsers(res);
+    if (socket === null || !user) return;
+
+    socket.emit("addNewUser", user._id);
+
+    socket.on("getUsers", (users) => {
+      setOnlineUsers(users);
     });
 
+    // Cleanup socket listeners on unmount
     return () => {
       socket.off("getUsers");
     };
-  }, [socket]);
+  }, [socket, user]);
 
-  //send messsage
+  // Listen for incoming messages
   useEffect(() => {
     if (socket === null) return;
 
-    const recipientId = currentChat?.members.find((id) => id !== user?.id);
-
-    socket.emit("sendMessage", { ...newMessage, recipientId });
-  }, [newMessage]);
-
-  useEffect(() => {
-    if (socket === null) return;
-
-    socket.on("getMessage", (res) => {
-      if (currentChat?.id !== res.chatId) return;
-
-      setMessages((prev) => [...prev, res]);
+    socket.on("getMessage", (data) => {
+      if (currentChat?._id !== data.chatId) {
+        // Add to unread messages if not in the current chat
+        setUnreadMessages((prev) => [...prev, data]);
+      } else {
+        // Add to current chat messages
+        setNewMessage(data);
+      }
     });
 
-    socket.on("getNotification", (res) => {
-      const isChatOpen = currentChat?.members.some((id) => id === res.senderId);
-
-      if (isChatOpen) {
-        setNotifications((prev) => [{ ...res, isRead: true }, ...prev]);
-      } else {
-        setNotifications((prev) => [res, ...prev]);
-      }
+    socket.on("newChat", (chat) => {
+      setChats((prev) => [...prev, chat]);
     });
 
     return () => {
       socket.off("getMessage");
-      socket.off("getNotification");
+      socket.off("newChat");
     };
   }, [socket, currentChat]);
 
+  // Add new message to current chat
   useEffect(() => {
-    const getMessage = async () => {
-      setIsMessagesLoading(true);
-      try {
-        const response = await axios.get(
-          `${baseUrl}/messages/${currentChat?.id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-            },
-          }
-        );
+    if (!newMessage) return;
 
-        if (response.status === 200) {
-          setMessages(response.data);
-        } else {
-          setMessagesError(response.data.message || "An error occurred");
-        }
-      } catch (error) {
-        setMessagesError(
-          error.response?.data?.message || "Failed to fetch messages"
-        );
-      } finally {
-        setIsMessagesLoading(false);
-      }
-    };
+    // If the message belongs to the current chat, add it to messages
+    if (currentChat?._id === newMessage.chatId) {
+      setMessages((prev) => [...prev, newMessage]);
 
-    getMessage();
-  }, [currentChat]);
-
-  useEffect(() => {
-    const getUsers = async () => {
-      try {
-        const response = await axios.get(`${baseUrl}/users`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          },
-        });
-
-        setAllUsers(response.data);
-
-        if (userChats) {
-          const pChats = response.data.filter((u) => {
-            if (user._id === u._id) return false;
-
-            const isChatCreated = userChats?.some(
-              (chat) => chat.members[0] === u._id || chat.members[1] === u._id
-            );
-
-            return !isChatCreated;
-          });
-
-          setPotentialChats(pChats);
-        }
-      } catch (error) {
-        console.error(
-          "Error fetching users:",
-          error.response?.data?.message || error.message || error
-        );
-      }
-    };
-
-    getUsers();
-  }, [userChats]);
-
-  useEffect(() => {
-    const getUserChats = async () => {
-      setIsUserChatsLoading(true);
-      setUserChatsError(null);
-
-      if (user?._id) {
-        const userId = user?._id;
-
-        const response = await axios.get(`${baseUrl}/chats/${userId}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          },
-        });
-
-        if (response.error) {
-          return setUserChatsError(response);
-        }
-
-        setUserChats(response);
-      }
-
-      setIsUserChatsLoading(false);
-    };
-
-    getUserChats();
-  }, [user, notifications]);
-
-  const updateCurrentChat = useCallback(async (chat) => {
-    setCurrentChat(chat);
-  }, []);
-
-  const sendTextMessage = useCallback(
-    async (textMessage, sender, currentChatId, setTextMessage) => {
-      if (!textMessage) return console.log("You must type something...");
-
-      const response = await axios.post(
-        `${baseUrl}/messages`,
-        {
-          chatId: currentChatId,
-          senderId: sender._id,
-          text: textMessage,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          },
-        }
+      // Also update the last message in the chats list
+      setChats((prev) =>
+        prev.map((chat) =>
+          chat._id === newMessage.chatId
+            ? { ...chat, lastMessage: newMessage.text }
+            : chat
+        )
       );
-
-      if (response.error) {
-        return setSendTextMessageError(response);
-      }
-
-      setNewMessage(response);
-      setMessages((prev) => [...prev, response]);
-      setTextMessage("");
-    },
-    []
-  );
-
-  const createChat = useCallback(async (senderId, receiverId) => {
-    const response = await axios.post(
-      `${baseUrl}/chats`,
-      {
-        senderId,
-        receiverId,
-      },
-      {}
-    );
-
-    if (response.error) {
-      return console.log("Error creating chat:", response);
     }
+  }, [newMessage, currentChat]);
 
-    setUserChats((prev) => [...prev, response]);
-  }, []);
+  // Fetch user chats
+  const getChats = useCallback(async () => {
+    if (!user) return;
 
-  const markAllNotificationsAsRead = useCallback((notifications) => {
-    const modifiedNotifications = notifications.map((n) => {
-      return { ...n, isRead: true };
-    });
+    setIsLoading(true);
+    try {
+      const { data } = await axios.get(
+        `http://localhost:3000/chats/${user._id}`
+      );
+      setChats(data);
+    } catch (error) {
+      console.error("Error fetching chats:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
 
-    setNotifications(modifiedNotifications);
-  }, []);
+  // Fetch potential users to chat with
+  const getPotentialChats = useCallback(async () => {
+    if (!user) return;
 
-  const markNotificationAsRead = useCallback(
-    (n, userChats, user, notifications) => {
-      // find chat to open
-      const readChat = userChats.find((chat) => {
-        const chatMembers = [user._id, n.senderId];
-        const isDesiredChat = chat?.members.every((member) => {
-          return chatMembers.includes(member);
-        });
+    try {
+      const { data } = await axios.get("http://localhost:3000/users");
+      // Filter out users already in chat and current user
+      const potentialUsers = data.filter(
+        (u) =>
+          u._id !== user._id &&
+          !chats.some(
+            (chat) =>
+              chat.members.includes(u._id) && chat.members.includes(user._id)
+          )
+      );
+      setPotentialChats(potentialUsers);
+    } catch (error) {
+      console.error("Error fetching potential chats:", error);
+    }
+  }, [user, chats]);
 
-        return isDesiredChat;
+  // Create a new chat
+  const createChat = useCallback(
+    (receiverId) => {
+      if (!socket || !user) return;
+
+      socket.emit("createChat", {
+        senderId: user._id,
+        receiverId,
       });
 
-      // mark notification as read
-      const modifiedNotifications = notifications.map((element) => {
-        if (n.senderId === element.senderId) {
-          return { ...n, isRead: true };
-        } else {
-          return element;
-        }
+      socket.on("chatCreated", (chat) => {
+        setChats((prev) => [...prev, chat]);
+        setPotentialChats((prev) => prev.filter((u) => u._id !== receiverId));
       });
 
-      updateCurrentChat(readChat);
-      setNotifications(modifiedNotifications);
+      socket.on("chatError", (error) => {
+        console.error("Error creating chat:", error);
+      });
+
+      return () => {
+        socket.off("chatCreated");
+        socket.off("chatError");
+      };
     },
-    []
+    [socket, user]
   );
 
-  const markThisUserNotificationsAsRead = useCallback(
-    (thisUserNotifications, notifications) => {
-      // mark notification as read
+  // Get chat messages
+  const getMessages = useCallback(async (chatId) => {
+    if (!chatId) return;
 
-      const modifiedNotifications = notifications.map((element) => {
-        let notification;
+    setIsLoading(true);
+    try {
+      const { data } = await axios.get(
+        `http://localhost:3000/messages/${chatId}`
+      );
+      setMessages(data);
 
-        thisUserNotifications.forEach((n) => {
-          if (n.senderId === element.senderId) {
-            notification = { ...n, isRead: true };
-          } else {
-            notification = element;
-          }
-        });
+      // Remove unread messages for this chat
+      setUnreadMessages((prev) => prev.filter((msg) => msg.chatId !== chatId));
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-        return notification;
+  // Send a message
+  const sendMessage = useCallback(
+    (text, chatId, receiverId) => {
+      if (!socket || !user) return;
+
+      socket.emit("sendMessage", {
+        senderId: user._id,
+        recipientId: receiverId,
+        chatId,
+        text,
       });
-
-      setNotifications(modifiedNotifications);
     },
-    []
+    [socket, user]
   );
+
+  // Update chats when user changes
+  useEffect(() => {
+    if (user) {
+      getChats();
+    } else {
+      setChats([]);
+      setCurrentChat(null);
+      setMessages([]);
+      setUnreadMessages([]);
+      setPotentialChats([]);
+    }
+  }, [user, getChats]);
+
+  // Get potential chats when chats change
+  useEffect(() => {
+    getPotentialChats();
+  }, [getPotentialChats, chats]);
+
+  // Mark messages as read when changing current chat
+  const markMessagesAsRead = useCallback((chatId) => {
+    setUnreadMessages((prev) => prev.filter((msg) => msg.chatId !== chatId));
+  }, []);
+
+  // Get unread messages for a specific chat
+  const getUnreadMessages = useCallback(
+    (chatId) => {
+      return unreadMessages.filter((msg) => msg.chatId === chatId);
+    },
+    [unreadMessages]
+  );
+
   return (
     <ChatContext.Provider
       value={{
-        userChats,
-        isUserChatsLoading,
-        userChatsError,
-        updateCurrentChat,
+        socket,
+        onlineUsers,
+        chats,
+        potentialChats,
         currentChat,
         messages,
-        messagesError,
-        socket,
-        sendTextMessage,
-        onlineUsers,
-        potentialChats,
+        isLoading,
+        unreadMessages,
+        getUnreadMessages,
+        setCurrentChat,
         createChat,
-        notifications,
-        allUsers,
-        markAllNotificationsAsRead,
-        markNotificationAsRead,
-        markThisUserNotificationsAsRead,
-        newMessage,
+        getMessages,
+        sendMessage,
+        markMessagesAsRead,
       }}
     >
       {children}

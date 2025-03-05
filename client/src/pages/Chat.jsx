@@ -1,87 +1,49 @@
-import React, { useState } from "react";
-import ChatBox from "../components/ChatBox";
-import AllUsers from "../components/AllUser";
-import { Container, Stack } from "react-bootstrap";
+import React, { useContext } from "react";
+import { Container, Row, Col } from "react-bootstrap";
+import { ChatContext } from "../context/ChatContext";
+import { AuthContext } from "../context/AuthContext";
 import UserCard from "../components/UserCard";
+import ChatBox from "../components/ChatBox";
+import AllUser from "../components/AllUser";
 
 const Chat = () => {
-  const [currentChat, setCurrentChat] = useState(null);
+  const { user } = useContext(AuthContext);
+  const { chats, onlineUsers } = useContext(ChatContext);
 
-  const updateCurrentChat = (chat) => {
-    setCurrentChat(chat);
-  };
-
-  // Mock Authentication Context
-  const mockUser = {
-    _id: "user123",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    avatar: "https://randomuser.me/api/portraits/men/1.jpg",
-  };
-
-  // Mock Chats Data
-  const mockUserChats = [
-    {
-      _id: "chat1",
-      members: [
-        {
-          _id: "user123",
-          name: "John Doe",
-          avatar: "https://randomuser.me/api/portraits/men/1.jpg",
-        },
-        {
-          _id: "user456",
-          name: "Jane Smith",
-          avatar: "https://randomuser.me/api/portraits/women/2.jpg",
-        },
-      ],
-      lastMessage: {
-        text: "Hey, how are you?",
-        sender: "user456",
-        createdAt: new Date(),
-      },
-    },
-    {
-      _id: "chat2",
-      members: [
-        {
-          _id: "user123",
-          name: "John Doe",
-          avatar: "https://randomuser.me/api/portraits/men/1.jpg",
-        },
-        {
-          _id: "user789",
-          name: "Mike Johnson",
-          avatar: "https://randomuser.me/api/portraits/men/3.jpg",
-        },
-      ],
-      lastMessage: {
-        text: "Meeting tomorrow?",
-        sender: "user789",
-        createdAt: new Date(),
-      },
-    },
-  ];
   return (
-    <Container>
-      <AllUsers />
-      {mockUserChats?.length < 1 ? null : (
-        <Stack direction="horizontal" gap={4} className="align-items-start">
-          <Stack className="messages-box flex-grow-0 pe-3" gap={3}>
-            {/* {isUserChatsLoading && <p>Fetching Chats..</p>} */}
-            {/* {(!isUserChatsLoading && !userChats) ||
-              (!userChats?.length === 0 && <p>No Chats..</p>)} */}
-            {mockUserChats?.map((chat, index) => {
-              return (
-                <div key={index} onClick={() => updateCurrentChat(chat)}>
-                  <UserCard />
-                </div>
-              );
-            })}
-          </Stack>
+    <Container fluid className="h-100">
+      <Row className="h-100">
+        {/* Sidebar */}
+        <Col
+          md={4}
+          className="border-end h-100 overflow-auto"
+          style={{ maxHeight: "100vh" }}
+        >
+          <div className="p-3">
+            <h5 className="mb-3">Your Chats</h5>
+            {chats.length > 0 ? (
+              chats.map((chat) => (
+                <UserCard
+                  key={chat._id}
+                  chat={chat}
+                  isOnline={onlineUsers.some(
+                    (u) =>
+                      u.userId === chat.members.find((id) => id !== user?._id)
+                  )}
+                />
+              ))
+            ) : (
+              <p className="text-muted text-center">No chats yet</p>
+            )}
+          </div>
+
+          <AllUser />
+        </Col>
+
+        <Col md={8} className="h-100 d-flex flex-column">
           <ChatBox />
-        </Stack>
-      )}
+        </Col>
+      </Row>
     </Container>
   );
 };

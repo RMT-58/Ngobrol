@@ -1,194 +1,139 @@
-import { useRef, useState, useEffect } from "react";
-import { Stack, Container, Form, Button } from "react-bootstrap";
-import InputEmoji from "react-input-emoji";
+import React, { useContext, useState, useEffect, useRef } from "react";
+import { AuthContext } from "../context/AuthContext";
+import { ChatContext } from "../context/ChatContext";
+import { Card, Form, Button, InputGroup } from "react-bootstrap";
+import { FiSend } from "react-icons/fi";
 import moment from "moment";
+import avatar from "../assets/avatar.svg";
 
 const ChatBox = () => {
-  // Dummy user data
-  const currentUser = {
-    _id: "user1",
-    name: "John Doe",
-  };
+  const { user } = useContext(AuthContext);
+  const { currentChat, messages, isLoading, sendMessage, getMessages } =
+    useContext(ChatContext);
+  const [messageText, setMessageText] = useState("");
+  const endOfMessagesRef = useRef(null);
 
-  // Dummy recipient data
-  const recipientUser = {
-    _id: "user2",
-    name: "Jane Smith",
-  };
+  const recipientId = currentChat?.members?.find((id) => id !== user?._id);
 
-  // Dummy chat data
-  //   const currentChat = {
-  //     _id: "chat1",
-  //     members: ["user1", "user2"],
-  //   };
-
-  // Dummy messages data
-  const [messages, setMessages] = useState([
-    {
-      _id: "msg1",
-      text: "Halo bro?",
-      senderId: "user2",
-      createdAt: "2025-03-03T10:30:00",
-    },
-    {
-      _id: "msg2",
-      text: "aman bro gmn?",
-      senderId: "user1",
-      createdAt: "2025-03-03T10:32:00",
-    },
-    {
-      _id: "msg3",
-      text: "aman lah. ngoding BYASALAH.",
-      senderId: "user2",
-      createdAt: "2025-03-03T10:35:00",
-    },
-    {
-      _id: "msg4",
-      text: "oh gitu?",
-      senderId: "user1",
-      createdAt: "2025-03-03T10:37:00",
-    },
-    {
-      _id: "msg5",
-      text: "chat app bre lelah",
-      senderId: "user2",
-      createdAt: "2025-03-03T10:40:00",
-    },
-  ]);
-
-  const [textMessage, setTextMessage] = useState("");
-  const [
-    isMessagesLoading,
-    // setIsMessagesLoading
-  ] = useState(false);
-  const scroll = useRef();
-
-  // Auto-scroll to the newest message
   useEffect(() => {
-    scroll.current?.scrollIntoView({ behavior: "smooth" });
+    if (currentChat?._id) {
+      getMessages(currentChat._id);
+    }
+  }, [currentChat, getMessages]);
+
+  useEffect(() => {
+    scrollToBottom();
   }, [messages]);
 
-  // Simulate sending a message
-  const sendTextMessage = (text) => {
-    if (text.trim() === "") return;
-
-    const newMessage = {
-      _id: `msg${messages.length + 1}`,
-      text: text,
-      senderId: currentUser._id,
-      createdAt: new Date().toISOString(),
-    };
-
-    setMessages([...messages, newMessage]);
-    setTextMessage("");
+  const scrollToBottom = () => {
+    endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Show loading state
-  if (isMessagesLoading) {
-    return (
-      <Container
-        className="d-flex justify-content-center align-items-center"
-        style={{ height: "80vh" }}
-      >
-        <div className="text-center">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <p className="mt-2">Loading chat...</p>
-        </div>
-      </Container>
-    );
-  }
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (messageText.trim() === "") return;
 
-  // Show placeholder when no chat is selected
-  if (!recipientUser) {
+    sendMessage(messageText, currentChat._id, recipientId);
+    setMessageText("");
+  };
+
+  const formatTimestamp = (timestamp) => {
+    return moment(timestamp).calendar();
+  };
+
+  if (!currentChat) {
     return (
-      <Container
-        className="d-flex justify-content-center align-items-center"
-        style={{ height: "80vh" }}
-      >
-        <p className="text-center text-muted">
-          No conversation selected yet...
-        </p>
-      </Container>
+      <div className="d-flex justify-content-center align-items-center h-100">
+        <p className="text-muted">Select a chat to start messaging</p>
+      </div>
     );
   }
 
   return (
-    <Container className="chat-container p-0">
-      <div className="chat-header bg-light p-3 border-bottom">
-        <h5 className="mb-0">{recipientUser.name}</h5>
-      </div>
+    <Card className="border-0 shadow-sm h-100 d-flex flex-column">
+      <Card.Header className="bg-white border-bottom p-3">
+        <div className="d-flex align-items-center">
+          <img
+            src={avatar}
+            alt="User Avatar"
+            className="rounded-circle me-3"
+            style={{ width: "40px", height: "40px", objectFit: "cover" }}
+          />
+          <div className="flex-grow-1">
+            <h5 className="mb-0">
+              {currentChat.recipientUser?.username || "User"}
+            </h5>
+          </div>
+        </div>
+      </Card.Header>
 
-      <div
-        className="messages-container p-3"
-        style={{ height: "60vh", overflowY: "auto" }}
+      <Card.Body
+        className="p-3 flex-grow-1 overflow-auto"
+        style={{ maxHeight: "calc(100vh - 280px)" }}
       >
-        <Stack gap={3} className="messages">
-          {messages.map((message, index) => (
-            <div
-              key={index}
-              className={`d-flex ${
-                message.senderId === currentUser._id
-                  ? "justify-content-end"
-                  : "justify-content-start"
-              }`}
-            >
+        {isLoading ? (
+          <div className="text-center p-4">
+            <span className="spinner-border spinner-border-sm text-primary me-2"></span>
+            Loading messages...
+          </div>
+        ) : messages.length === 0 ? (
+          <div className="text-center text-muted p-4">
+            No messages yet. Start the conversation!
+          </div>
+        ) : (
+          <div className="d-flex flex-column gap-3">
+            {messages.map((message, index) => (
               <div
-                className={`message p-2 rounded-3 ${
-                  message.senderId === currentUser._id
-                    ? "bg-primary text-white"
-                    : "bg-light"
+                key={index}
+                className={`d-flex ${
+                  message.senderId === user?._id
+                    ? "justify-content-end"
+                    : "justify-content-start"
                 }`}
-                style={{ maxWidth: "75%" }}
-                ref={index === messages.length - 1 ? scroll : null}
               >
-                <div>{message.text}</div>
                 <div
-                  className={`message-footer text-end mt-1 ${
-                    message.senderId === currentUser._id
-                      ? "text-white-50"
-                      : "text-muted"
+                  className={`message-bubble p-3 rounded-3 ${
+                    message.senderId === user?._id
+                      ? "bg-primary text-white"
+                      : "bg-light"
                   }`}
-                  style={{ fontSize: "0.75rem" }}
+                  style={{ maxWidth: "75%", overflowWrap: "break-word" }}
                 >
-                  {moment(message.createdAt).calendar()}
+                  <div>{message.text}</div>
+                  <div
+                    className={`text-end mt-1 small ${
+                      message.senderId === user?._id
+                        ? "text-white-50"
+                        : "text-muted"
+                    }`}
+                  >
+                    {formatTimestamp(message.createdAt)}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </Stack>
-      </div>
+            ))}
+            <div ref={endOfMessagesRef} />
+          </div>
+        )}
+      </Card.Body>
 
-      <div className="chat-input-container p-3 border-top">
-        <Stack direction="horizontal" gap={2}>
-          <InputEmoji
-            value={textMessage}
-            onChange={setTextMessage}
-            fontFamily="nunito"
-            borderColor="rgba(72, 112, 223, 0.2)"
-            placeholder="Type a message..."
-            onEnter={sendTextMessage}
-          />
-          <Button
-            variant="primary"
-            className="send-btn"
-            onClick={() => sendTextMessage(textMessage)}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              fill="currentColor"
-              className="bi bi-send-fill"
-              viewBox="0 0 16 16"
-            >
-              <path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083l6-15Zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471-.47 1.178Z" />
-            </svg>
-          </Button>
-        </Stack>
-      </div>
-    </Container>
+      <Card.Footer className="bg-white border-top p-3">
+        <Form onSubmit={handleSubmit}>
+          <InputGroup>
+            <Form.Control
+              type="text"
+              placeholder="Type a message..."
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              className="rounded-start"
+            />
+            <Button variant="primary" type="submit" disabled={isLoading}>
+              <FiSend />
+            </Button>
+          </InputGroup>
+        </Form>
+      </Card.Footer>
+    </Card>
   );
 };
 
