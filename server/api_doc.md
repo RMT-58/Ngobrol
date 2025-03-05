@@ -54,8 +54,10 @@ Login an existing user.
 
 ```
 {
+  "id": number,
   "access_token": "string",
-  "email": "string"
+  "email": "string",
+  "name": "string"
 }
 ```
 
