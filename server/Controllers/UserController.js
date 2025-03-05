@@ -25,6 +25,7 @@ class UserController {
       };
       res.status(201).json(result);
     } catch (error) {
+      // Pass Sequelize errors directly, they'll be handled by errorHandler
       next(error);
     }
   }
