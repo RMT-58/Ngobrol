@@ -6,6 +6,19 @@ import { AuthContext } from "../context/AuthContext";
 const NavBar = () => {
   const { user, logout } = useContext(AuthContext);
 
+  const animatedTitleStyle = {
+    fontFamily: "Fredoka One, sans-serif",
+    fontSize: "1.5rem",
+    fontWeight: "bold",
+    color: "#3498db",
+    textTransform: "uppercase",
+    textAlign: "center",
+    animation: "fadeInUp 2s ease-in-out",
+    letterSpacing: "3px",
+    textShadow:
+      "3px 3px 5px rgba(0, 0, 0, 0.3), 0px 0px 25px rgba(255, 255, 255, 0.5)",
+  };
+
   return (
     <Navbar
       bg="primary"
@@ -18,8 +31,13 @@ const NavBar = () => {
       }}
     >
       <Container fluid className="px-4">
-        <Navbar.Brand as={Link} to="/" className="fw-bold text-white">
-          ChattApp
+        <Navbar.Brand
+          as={Link}
+          to="/"
+          className="fw-bold text-white"
+          style={animatedTitleStyle}
+        >
+          NGOBROL
         </Navbar.Brand>
 
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
