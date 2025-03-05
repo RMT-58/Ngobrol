@@ -10,15 +10,22 @@ const UserCard = ({ chat, isOnline }) => {
   const { getUnreadMessages, setCurrentChat, markMessagesAsRead } =
     useContext(ChatContext);
 
-  const recipientId = chat.members.find((id) => id !== user?._id);
+  console.log("UserCard - chat:", chat);
+  console.log("UserCard - user:", user);
 
-  const recipientUser = chat.recipientUser || { username: "User" };
+  const recipientId = chat.members.find((id) => id !== user?.id);
+  console.log("UserCard - recipientId:", recipientId);
 
-  const unreadMessages = getUnreadMessages(chat._id);
+  const recipientUser = chat.membersDetails?.find(
+    (member) => member?.id === recipientId
+  ) || { name: "User" };
+  console.log("UserCard - recipientUser:", recipientUser);
+
+  const unreadMessages = getUnreadMessages(chat.id);
 
   const handleCardClick = () => {
     setCurrentChat(chat);
-    markMessagesAsRead(chat._id);
+    markMessagesAsRead(chat.id);
   };
 
   return (
@@ -38,7 +45,7 @@ const UserCard = ({ chat, isOnline }) => {
             />
             <div>
               <div className="fw-bold text-dark">
-                {recipientUser.username}
+                {recipientUser.name}
                 {isOnline && (
                   <span
                     className="badge bg-success rounded-circle ms-2"

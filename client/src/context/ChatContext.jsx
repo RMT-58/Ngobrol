@@ -8,80 +8,89 @@ import {
 import { io } from "socket.io-client";
 import { AuthContext } from "./AuthContext";
 import axios from "axios";
+import { baseUrl } from "../utils/service";
 
 export const ChatContext = createContext();
 
+//BUAT PROVIDER BUAT NGASIH VALUE KE CHILD COMPONENT
 export const ChatContextProvider = ({ children }) => {
+  //USER DARI AUTH CONTEXT
   const { user } = useContext(AuthContext);
+
+  //STATE SOCKET, ONLINE USERS, CHATS, CURRENT CHAT, MESSAGES, DLL
   const [socket, setSocket] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [chats, setChats] = useState([]);
   const [currentChat, setCurrentChat] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState(null);
+  const [newMessage] = useState(null);
   const [unreadMessages, setUnreadMessages] = useState([]);
   const [potentialChats, setPotentialChats] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Initialize socket connection
+  //BUAT NGEBUAT KONEKSI SOCKET BARU pas component mount
   useEffect(() => {
-    const newSocket = io("http://localhost:3000");
+    const newSocket = io(`${baseUrl}`);
     setSocket(newSocket);
-
     return () => {
-      newSocket.disconnect();
+      newSocket.disconnect(); //BUAT MATION SOCKET pas component unmount
     };
   }, []);
 
-  // Register user with socket when user logs in
+  //BUAT NGIRIM USER ID KE SOCKET pas user login dan socket udah siap
   useEffect(() => {
     if (socket === null || !user) return;
-
-    socket.emit("addNewUser", user._id);
-
+    socket.emit("addNewUser", user.id);
     socket.on("getUsers", (users) => {
-      setOnlineUsers(users);
+      setOnlineUsers(users); //BUAT SAve DATA USER ONLINE
     });
-
-    // Cleanup socket listeners on unmount
     return () => {
-      socket.off("getUsers");
+      socket.off("getUsers"); //HAPUS LISTENER
     };
   }, [socket, user]);
 
-  // Listen for incoming messages
+  //BUAT EVENT MESSAGE DAN CHAT BARU DARI SOCKET
   useEffect(() => {
     if (socket === null) return;
-
+    //BUAT NGEHANDLE MESSAGE MASUK
     socket.on("getMessage", (data) => {
-      if (currentChat?._id !== data.chatId) {
-        // Add to unread messages if not in the current chat
-        setUnreadMessages((prev) => [...prev, data]);
-      } else {
-        // Add to current chat messages
-        setNewMessage(data);
+      console.log("Received message:", data);
+      //BUAT FILTER MESSAGE, kalo bukan dari current user
+      if (data.senderId !== user?.id) {
+        if (currentChat?.id !== data.chatId) {
+          setUnreadMessages((prev) => [...prev, data]);
+        } else {
+          //show message NYA LANGSUNG kalo chatnya lagi aktif
+          setMessages((prev) => [...prev, data]);
+          //BUAT UPDATE LAST MESSAGE DI LIST CHAT
+          setChats((prev) =>
+            prev.map((chat) =>
+              chat.id === data.chatId
+                ? { ...chat, lastMessage: data.text }
+                : chat
+            )
+          );
+        }
       }
     });
 
+    //BUAT NGEHANDLE CHAT BARU DARI SOCKET
     socket.on("newChat", (chat) => {
-      setChats((prev) => [...prev, chat]);
+      console.log("New chat created:", chat);
+      setChats((prev) => [...prev, chat]); //BUAT NAMBHAIN CHAT BARU KE STATE
     });
 
     return () => {
       socket.off("getMessage");
       socket.off("newChat");
     };
-  }, [socket, currentChat]);
+  }, [socket, currentChat, user, setMessages, setChats, setUnreadMessages]);
 
-  // Add new message to current chat
+  //UPDATE MESSAGES PAS ADA NEW MESSAGE (KALO MESSAGES DATANG DARI SOURCE LAIN)
   useEffect(() => {
     if (!newMessage) return;
-
-    // If the message belongs to the current chat, add it to messages
     if (currentChat?._id === newMessage.chatId) {
       setMessages((prev) => [...prev, newMessage]);
-
-      // Also update the last message in the chats list
       setChats((prev) =>
         prev.map((chat) =>
           chat._id === newMessage.chatId
@@ -92,83 +101,98 @@ export const ChatContextProvider = ({ children }) => {
     }
   }, [newMessage, currentChat]);
 
-  // Fetch user chats
+  //BUAT NGAMBIL CHATNYA DARI API
   const getChats = useCallback(async () => {
     if (!user) return;
-
     setIsLoading(true);
     try {
-      const { data } = await axios.get(
-        `http://localhost:3000/chats/${user._id}`
-      );
+      console.log("Fetching chats for user:", user);
+      const { data } = await axios.get(`${baseUrl}/chats/${user.id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
+      console.log("Chats response:", data);
       setChats(data);
     } catch (error) {
       console.error("Error fetching chats:", error);
+      console.error("Error details:", error.response?.data);
     } finally {
       setIsLoading(false);
     }
   }, [user]);
 
-  // Fetch potential users to chat with
+  //LIST POTENSI CHAT BARU (USER YANG BELUM DI CHATTING)
   const getPotentialChats = useCallback(async () => {
     if (!user) return;
-
     try {
-      const { data } = await axios.get("http://localhost:3000/users");
-      // Filter out users already in chat and current user
-      const potentialUsers = data.filter(
+      console.log("Fetching potential users, current user:", user);
+      const response = await axios.get(`${baseUrl}/users`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
+      console.log("All users response:", response.data);
+      //BUAT NYARING USER YANG GA SAMA DENGAN LOGGEDIN USER DAN YG BELUM DI CHAT
+      const potentialUsers = response.data.filter(
         (u) =>
-          u._id !== user._id &&
+          u.id !== user.id &&
           !chats.some(
             (chat) =>
-              chat.members.includes(u._id) && chat.members.includes(user._id)
+              chat.members.includes(u.id) && chat.members.includes(user.id)
           )
       );
+      console.log("Filtered potential users:", potentialUsers);
       setPotentialChats(potentialUsers);
     } catch (error) {
       console.error("Error fetching potential chats:", error);
+      console.error("Error details:", error.response?.data);
     }
   }, [user, chats]);
 
-  // Create a new chat
+  //BUAT BIKIN CHAT BARU, NGIRIM EVENT KE SOCKET
   const createChat = useCallback(
     (receiverId) => {
       if (!socket || !user) return;
-
+      console.log("Creating chat between", user.id, "and", receiverId);
       socket.emit("createChat", {
-        senderId: user._id,
+        senderId: user.id,
         receiverId,
       });
-
-      socket.on("chatCreated", (chat) => {
+      //BUAT HANDLE EVENT CHAT CREATED
+      const handleChatCreated = (chat) => {
+        console.log("Chat created:", chat);
         setChats((prev) => [...prev, chat]);
-        setPotentialChats((prev) => prev.filter((u) => u._id !== receiverId));
-      });
-
-      socket.on("chatError", (error) => {
+        setPotentialChats((prev) => prev.filter((u) => u.id !== receiverId));
+        socket.off("chatCreated", handleChatCreated);
+      };
+      //BUAT HANDLE ERROR PAS BIKIN CHAT
+      const handleChatError = (error) => {
         console.error("Error creating chat:", error);
-      });
-
+        socket.off("chatError", handleChatError);
+      };
+      socket.on("chatCreated", handleChatCreated);
+      socket.on("chatError", handleChatError);
       return () => {
-        socket.off("chatCreated");
-        socket.off("chatError");
+        socket.off("chatCreated", handleChatCreated);
+        socket.off("chatError", handleChatError);
       };
     },
     [socket, user]
   );
 
-  // Get chat messages
+  //BUAT NGAMBIL MESSAGE DARI API (CHAT DETAIL)
   const getMessages = useCallback(async (chatId) => {
     if (!chatId) return;
-
     setIsLoading(true);
     try {
-      const { data } = await axios.get(
-        `http://localhost:3000/messages/${chatId}`
-      );
+      const { data } = await axios.get(`${baseUrl}/messages/${chatId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
       setMessages(data);
-
-      // Remove unread messages for this chat
+      //BUAT HAPUS UNREAD MESSAGE KALO UDH DIAMBIL
       setUnreadMessages((prev) => prev.filter((msg) => msg.chatId !== chatId));
     } catch (error) {
       console.error("Error fetching messages:", error);
@@ -177,22 +201,39 @@ export const ChatContextProvider = ({ children }) => {
     }
   }, []);
 
-  // Send a message
+  //BUAT NGIRIM MESSAGE KE SOCKET DAN UPDATE STATE MESSAGE DAN CHAT LAST MESSAGE
   const sendMessage = useCallback(
     (text, chatId, receiverId) => {
       if (!socket || !user) return;
-
+      console.log("Sending message:", {
+        senderId: user.id,
+        recipientId: receiverId,
+        chatId,
+        text,
+      });
+      const messageData = {
+        chatId,
+        senderId: user.id,
+        text,
+        createdAt: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, messageData]);
+      setChats((prev) =>
+        prev.map((chat) =>
+          chat.id === chatId ? { ...chat, lastMessage: text } : chat
+        )
+      );
       socket.emit("sendMessage", {
-        senderId: user._id,
+        senderId: user.id,
         recipientId: receiverId,
         chatId,
         text,
       });
     },
-    [socket, user]
+    [socket, user, setMessages, setChats]
   );
 
-  // Update chats when user changes
+  //BUAT UPDATE CHATS, MESSAGES, DLL PAS USER BERUBAH (LOGIN/LOGOUT)
   useEffect(() => {
     if (user) {
       getChats();
@@ -205,17 +246,17 @@ export const ChatContextProvider = ({ children }) => {
     }
   }, [user, getChats]);
 
-  // Get potential chats when chats change
+  //BUAT NGAMBIL POTENSI CHAT PAS ADA PERUBAHAN DI CHATS
   useEffect(() => {
     getPotentialChats();
   }, [getPotentialChats, chats]);
 
-  // Mark messages as read when changing current chat
+  //BUAT TANDAIN MESSAGE YANG UDh DIBACA
   const markMessagesAsRead = useCallback((chatId) => {
     setUnreadMessages((prev) => prev.filter((msg) => msg.chatId !== chatId));
   }, []);
 
-  // Get unread messages for a specific chat
+  //BUAT NGEMBALIIN UNREAD MESSAGE PER CHAT
   const getUnreadMessages = useCallback(
     (chatId) => {
       return unreadMessages.filter((msg) => msg.chatId === chatId);

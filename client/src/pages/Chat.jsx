@@ -10,6 +10,10 @@ const Chat = () => {
   const { user } = useContext(AuthContext);
   const { chats, onlineUsers } = useContext(ChatContext);
 
+  console.log("Chat component - user:", user);
+  console.log("Chat component - chats:", chats);
+  console.log("Chat component - onlineUsers:", onlineUsers);
+
   return (
     <Container fluid className="h-100">
       <Row className="h-100">
@@ -21,14 +25,14 @@ const Chat = () => {
         >
           <div className="p-3">
             <h5 className="mb-3">Your Chats</h5>
-            {chats.length > 0 ? (
+            {chats && chats.length > 0 ? (
               chats.map((chat) => (
                 <UserCard
-                  key={chat._id}
+                  key={chat.id}
                   chat={chat}
-                  isOnline={onlineUsers.some(
+                  isOnline={onlineUsers?.some(
                     (u) =>
-                      u.userId === chat.members.find((id) => id !== user?._id)
+                      u.userId === chat.members.find((id) => id !== user?.id)
                   )}
                 />
               ))

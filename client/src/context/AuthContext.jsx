@@ -1,5 +1,6 @@
 import { createContext, useCallback, useEffect, useState } from "react";
 import axios from "axios";
+import { baseUrl } from "../utils/service";
 
 export const AuthContext = createContext();
 
@@ -17,7 +18,7 @@ export const AuthContextProvider = ({ children }) => {
 
         const userData = JSON.parse(atob(token.split(".")[1]));
         const { data } = await axios.get(
-          `http://localhost:3000/users/find/${userData.id}`
+          `${baseUrl}/users/find/${userData.id}`
         );
         setUser(data);
       } catch (error) {
@@ -32,14 +33,11 @@ export const AuthContextProvider = ({ children }) => {
   // REGISTERRRR
   const register = async (username, email, password) => {
     try {
-      const { data } = await axios.post(
-        "http://localhost:3000/users/register",
-        {
-          name: username,
-          email,
-          password,
-        }
-      );
+      const { data } = await axios.post(`${baseUrl}/users/register`, {
+        name: username,
+        email,
+        password,
+      });
 
       return { success: true, data };
     } catch (error) {
@@ -56,7 +54,7 @@ export const AuthContextProvider = ({ children }) => {
       console.log("Attempting login with:", { email });
 
       const response = await axios.post(
-        "http://localhost:3000/users/login",
+        `${baseUrl}/users/login`,
         {
           email,
           password,
