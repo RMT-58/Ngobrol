@@ -4,14 +4,17 @@ const userRoute = require("./userRoute");
 const chatRoute = require("./chatRoute");
 const messageRoute = require("./messageRoute");
 const errorHandler = require("../middlewares/errorHandler");
+const authentication = require("../middlewares/authentication");
 
 router.get("/", (req, res) => {
   res.send("Welcome to our chat API...");
 });
 
-router.use("/api/users", userRoute);
-router.use("/api/chats", chatRoute);
-router.use("/api/messages", messageRoute);
+router.use("/users", userRoute);
+
+router.use(authentication);
+router.use("/chats", chatRoute);
+router.use("/messages", messageRoute);
 
 router.use(errorHandler);
 
