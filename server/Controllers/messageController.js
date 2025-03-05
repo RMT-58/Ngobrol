@@ -37,13 +37,6 @@ class MessageController {
   static async getMessages(req, res, next) {
     const { chatId } = req.params;
     try {
-      if (!chatId) {
-        return next({
-          name: "BadRequest",
-          message: "chatId is required",
-        });
-      }
-
       const chat = await Chat.findByPk(chatId);
       if (!chat) {
         return next({

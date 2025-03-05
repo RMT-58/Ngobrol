@@ -7,7 +7,7 @@ const errorHandler = require("../middlewares/errorHandler");
 const authentication = require("../middlewares/authentication");
 
 router.get("/", (req, res) => {
-  res.send("Welcome to our chat API...");
+  res.json({ message: "Welcome to our chat API..." });
 });
 
 router.use("/users", userRoute);

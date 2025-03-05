@@ -6,13 +6,6 @@ class UserController {
   static async registerUser(req, res, next) {
     const { name, email, password } = req.body;
     try {
-      if (!name || !email || !password) {
-        return next({
-          name: "BadRequest",
-          message: "Name, email, and password are required",
-        });
-      }
-
       const newUser = await User.create({
         name,
         email,
@@ -26,7 +19,6 @@ class UserController {
       };
       res.status(201).json(result);
     } catch (error) {
-      // Pass Sequelize errors directly, they'll be handled by errorHandler
       next(error);
     }
   }
@@ -81,12 +73,12 @@ class UserController {
   static async findUser(req, res, next) {
     const userId = req.params.userId;
     try {
-      if (!userId) {
-        return next({
-          name: "BadRequest",
-          message: "User ID is required",
-        });
-      }
+      // if (!userId) {
+      //   return next({
+      //     name: "BadRequest",
+      //     message: "User ID is required",
+      //   });
+      // }
 
       const user = await User.findByPk(userId, {
         attributes: ["id", "name", "email"],

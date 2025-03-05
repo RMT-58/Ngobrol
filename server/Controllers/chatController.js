@@ -3,12 +3,20 @@ const { Chat, User } = require("../models");
 
 class ChatController {
   static async createChat(req, res, next) {
-    const { senderId, receiverId } = req.body;
     try {
+      const { senderId, receiverId } = req.body;
       if (!senderId || !receiverId) {
         return next({
           name: "BadRequest",
           message: "senderId and receiverId are required",
+        });
+      }
+
+      const receiver = await User.findByPk(receiverId);
+      if (!receiver) {
+        return next({
+          name: "BadRequest",
+          message: "User not found",
         });
       }
 
@@ -33,10 +41,6 @@ class ChatController {
         attributes: ["id", "name", "email"],
       });
 
-      // const newChat = await Chat.create({
-      //   members: [senderId, receiverId],
-      // });
-
       res.status(200).json({ ...chat.toJSON(), membersDetails: users });
     } catch (error) {
       next(error);
@@ -44,14 +48,8 @@ class ChatController {
   }
 
   static async userChats(req, res, next) {
-    const { userId } = req.params;
     try {
-      if (!userId) {
-        return next({
-          name: "BadRequest",
-          message: "userId is required",
-        });
-      }
+      const { userId } = req.params;
 
       const chats = await Chat.findAll({
         where: {

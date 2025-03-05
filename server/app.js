@@ -1,7 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const router = require("./Routes");
+const router = require("./routes");
 const http = require("http");
 const setupSocket = require("./socket");
 
@@ -17,8 +17,8 @@ const server = http.createServer(app);
 
 setupSocket(server);
 
-server.listen(port, () => {
-  console.log(`Server running on port: ${port}...`);
-});
+// server.listen(port, () => {
+//   console.log(`Server running on port: ${port}...`);
+// });
 
 module.exports = app;
