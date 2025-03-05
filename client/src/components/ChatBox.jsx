@@ -132,9 +132,16 @@ const SentimentBadge = ({ message }) => {
 
 const ChatBox = () => {
   const { user } = useContext(AuthContext);
-  const { currentChat, messages, isLoading, sendMessage, getMessages } =
-    useContext(ChatContext);
-  const [messageText, setMessageText] = useState("");
+  const {
+    currentChat,
+    messages,
+    isLoading,
+    sendMessage,
+    getMessages,
+    aiSuggestion,
+    getAiSuggestion,
+  } = useContext(ChatContext);
+  const [textMessage, setTextMessage] = useState("");
   const endOfMessagesRef = useRef(null);
 
   console.log("ChatBox - currentChat:", currentChat);
@@ -164,15 +171,49 @@ const ChatBox = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (messageText.trim() === "") return;
+    if (textMessage.trim() === "") return;
 
-    sendMessage(messageText, currentChat.id, recipientId);
-    setMessageText("");
+    sendMessage(textMessage, currentChat.id, recipientId);
+    setTextMessage("");
   };
 
   const formatTimestamp = (timestamp) => {
     return moment(timestamp).calendar();
   };
+
+  //!BUAT AI SUGGESTIONNYA
+  const handleAiSuggestionClick = () => {
+    // Use user.id instead of user._id to be consistent
+    const formattedMessages = messages.map((m) => ({
+      role: m.senderId === user.id ? "user" : "assistant",
+      content: m.text,
+    }));
+
+    // Log the formatted messages to debug
+    console.log("Sending messages to AI:", formattedMessages);
+
+    // Call the getAiSuggestion function
+    getAiSuggestion(formattedMessages);
+  };
+
+  useEffect(() => {
+    if (aiSuggestion) {
+      setTextMessage(aiSuggestion);
+    }
+  }, [aiSuggestion]);
+  //!BUAT AI SUGGESTIONNYA
+
+  if (!recipientUser)
+    return (
+      <p style={{ textAlign: "center", width: "100%" }}>
+        No conversation selected yet..
+      </p>
+    );
+
+  if (isLoading)
+    return (
+      <p style={{ textAlign: "center", width: "100%" }}>Loading chat...</p>
+    );
 
   if (!currentChat) {
     return (
@@ -249,16 +290,32 @@ const ChatBox = () => {
         )}
       </Card.Body>
 
+      {/* <button onClick={handleAISuggestionClick}>Get AI Suggestion</button>
+
+      {aiSuggestion && (
+        <div className="ai-suggestion">
+          <strong>AI Suggestion:</strong> {aiSuggestion}
+        </div>
+      )} */}
+
       <Card.Footer className="bg-white border-top p-3">
         <Form onSubmit={handleSubmit}>
           <InputGroup>
             <Form.Control
               type="text"
               placeholder="Type a message..."
-              value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
+              value={textMessage}
+              onChange={(e) => setTextMessage(e.target.value)}
               className="rounded-start"
             />
+            {/* New button to get Gemini suggestion */}
+            <Button
+              variant="light"
+              className="ai-suggestion-btn"
+              onClick={handleAiSuggestionClick}
+            >
+              AI*
+            </Button>
             <Button variant="primary" type="submit" disabled={isLoading}>
               <FiSend />
             </Button>
