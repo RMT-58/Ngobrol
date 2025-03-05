@@ -271,6 +271,36 @@ Messages are sorted in ascending order by creation time.
 
 ---
 
+## POST /messages/ai-suggestions
+
+**Description**  
+Get AI-generated response suggestions based on conversation history.  
+**Protected** – Requires valid `access_token`.
+
+**Request Body**
+
+```
+{
+  "messages": [
+    {
+      "role": "string",    // "user" or "assistant"
+      "content": "string"  // message content
+    },
+    ...
+  ]
+}
+```
+
+**Response (200 OK)**
+
+```
+{
+  "suggestion": "string"  // AI-generated suggestion for next message
+}
+```
+
+---
+
 ## Error Response Example
 
 ```
@@ -285,6 +315,21 @@ Messages are sorted in ascending order by creation time.
 ---
 
 **Base URL**  
-All endpoints above are typically prefixed by your server’s base URL (for example, `https://your-domain.com` or `http://localhost:3000`).
+All endpoints above are typically prefixed by your server's base URL (for example, `https://your-domain.com` or `http://localhost:3000`).
 
-Use these routes to handle user registration, login, chat creation and retrieval, and message creation and retrieval. Make sure to include your `Authorization: Bearer <ACCESS_TOKEN>` header (where applicable) after logging in to access protected endpoints.
+Use these routes to handle user registration, login, chat creation and retrieval, message creation and retrieval, and AI message suggestions. Make sure to include your `Authorization: Bearer <ACCESS_TOKEN>` header (where applicable) after logging in to access protected endpoints.
+
+**Error Types**
+
+The API may return the following error types:
+
+- `BadRequest` - When required fields are missing or invalid
+- `Unauthorized` - When authentication fails
+- `NotFound` - When requested resources don't exist
+- `Forbidden` - When a user tries to access resources they don't have permission for
+
+**Authentication Flow**
+
+1. Register a new user using `/users/register`
+2. Login using `/users/login` to get your `access_token`
+3. Include this token in the `Authorization` header for all subsequent protected API calls

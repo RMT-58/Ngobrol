@@ -13,14 +13,18 @@ Phase 2 - Group Project - Chat Application
 - Socket.io
 - JWT
 - React+Vite
--
+- Bootstrap
 
 ### Feature
 
--login,
+-login
 -register
+-AI chat summary
+-AI mood detection
 
 ### Application Flow
 
 -HLD (High Level Design)
 react client -> express server -> postgresql db
+
+API docs available
