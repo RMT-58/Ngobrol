@@ -13,11 +13,20 @@ const ChatBox = () => {
   const [messageText, setMessageText] = useState("");
   const endOfMessagesRef = useRef(null);
 
-  const recipientId = currentChat?.members?.find((id) => id !== user?._id);
+  console.log("ChatBox - currentChat:", currentChat);
+  console.log("ChatBox - user:", user);
+
+  const recipientId = currentChat?.members?.find((id) => id !== user?.id);
+  console.log("Recipient ID:", recipientId);
+
+  const recipientUser = currentChat?.membersDetails?.find(
+    (member) => member?.id === recipientId
+  ) || { name: "User" };
+  console.log("Recipient user:", recipientUser);
 
   useEffect(() => {
-    if (currentChat?._id) {
-      getMessages(currentChat._id);
+    if (currentChat?.id) {
+      getMessages(currentChat.id);
     }
   }, [currentChat, getMessages]);
 
@@ -33,7 +42,7 @@ const ChatBox = () => {
     e.preventDefault();
     if (messageText.trim() === "") return;
 
-    sendMessage(messageText, currentChat._id, recipientId);
+    sendMessage(messageText, currentChat.id, recipientId);
     setMessageText("");
   };
 
@@ -60,9 +69,7 @@ const ChatBox = () => {
             style={{ width: "40px", height: "40px", objectFit: "cover" }}
           />
           <div className="flex-grow-1">
-            <h5 className="mb-0">
-              {currentChat.recipientUser?.username || "User"}
-            </h5>
+            <h5 className="mb-0">{recipientUser.name}</h5>
           </div>
         </div>
       </Card.Header>
@@ -86,14 +93,14 @@ const ChatBox = () => {
               <div
                 key={index}
                 className={`d-flex ${
-                  message.senderId === user?._id
+                  message.senderId === user?.id
                     ? "justify-content-end"
                     : "justify-content-start"
                 }`}
               >
                 <div
                   className={`message-bubble p-3 rounded-3 ${
-                    message.senderId === user?._id
+                    message.senderId === user?.id
                       ? "bg-primary text-white"
                       : "bg-light"
                   }`}
@@ -102,7 +109,7 @@ const ChatBox = () => {
                   <div>{message.text}</div>
                   <div
                     className={`text-end mt-1 small ${
-                      message.senderId === user?._id
+                      message.senderId === user?.id
                         ? "text-white-50"
                         : "text-muted"
                     }`}
