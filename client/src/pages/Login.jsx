@@ -5,8 +5,8 @@ import Swal from 'sweetalert2';
 
 const Login = () => {
   const navigate = useNavigate();
-    const [email, setEmail] = useState("user@mail.com");
-    const [password, setPassword] = useState("user123");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
 
     const handleLogin = async (event) => {
         event.preventDefault();
