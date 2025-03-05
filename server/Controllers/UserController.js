@@ -1,5 +1,6 @@
 const { User } = require("../models");
 const { signToken } = require("../helpers/jwt");
+const { comparePassword } = require("../helpers/bcrypt");
 
 class UserController {
   static async registerUser(req, res, next) {
@@ -56,7 +57,7 @@ class UserController {
         });
       }
 
-      const isValidPassword = await user.isValidPassword(password);
+      const isValidPassword = comparePassword(password, user.password);
       if (!isValidPassword) {
         return next({
           name: "Unauthorized",
@@ -67,8 +68,6 @@ class UserController {
       const access_token = signToken({ id: user.id });
       res.json({
         access_token,
-        id: user.id,
-        name: user.name,
         email: user.email,
       });
     } catch (error) {
