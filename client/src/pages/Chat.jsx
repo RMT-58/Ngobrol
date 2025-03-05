@@ -1,5 +1,4 @@
 import React, { useContext } from "react";
-import { Container, Row, Col } from "react-bootstrap";
 import { ChatContext } from "../context/ChatContext";
 import { AuthContext } from "../context/AuthContext";
 import UserCard from "../components/UserCard";
@@ -11,18 +10,10 @@ const Chat = () => {
   const { chats, onlineUsers } = useContext(ChatContext);
 
   return (
-    <Container
-      fluid
-      className="vh-100 d-flex flex-column p-0"
-      style={{ minHeight: "100vh" }}
-    >
-      <Row className="g-0 flex-grow-1">
+    <div className="container-fluid h-100">
+      <div className="row h-100">
         {/* Sidebar */}
-        <Col
-          md={4}
-          className="border-end d-flex flex-column"
-          style={{ height: "100vh", overflow: "hidden" }}
-        >
+        <div className="col-md-4 border-end d-flex flex-column h-100">
           <div className="p-3 flex-shrink-0">
             <h5 className="mb-3">Your Chats</h5>
           </div>
@@ -47,18 +38,14 @@ const Chat = () => {
           <div className="mt-auto p-3 flex-shrink-0">
             <AllUser />
           </div>
-        </Col>
+        </div>
 
         {/* Chat Area */}
-        <Col
-          md={8}
-          className="d-flex flex-column p-0"
-          style={{ height: "100vh" }}
-        >
+        <div className="col-md-8 d-flex flex-column h-100">
           <ChatBox />
-        </Col>
-      </Row>
-    </Container>
+        </div>
+      </div>
+    </div>
   );
 };
 

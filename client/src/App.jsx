@@ -5,6 +5,7 @@ import { ChatContextProvider } from "./context/ChatContext";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Chat from "./pages/Chat";
+import NavBar from "./components/Navbar";
 // import "bootstrap/dist/css/bootstrap.min.css";
 // import "./App.css";
 
@@ -14,10 +15,7 @@ const ProtectedRoute = ({ children }) => {
 
   if (loading) {
     return (
-      <div
-        className="d-flex justify-content-center align-items-center"
-        style={{ height: "100vh" }}
-      >
+      <div className="d-flex justify-content-center align-items-center vh-100">
         <div className="spinner-border text-primary" role="status">
           <span className="visually-hidden">Loading...</span>
         </div>
@@ -36,21 +34,26 @@ const App = () => {
   return (
     <BrowserRouter>
       <AuthContextProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <ChatContextProvider>
-                  <Chat />
-                </ChatContextProvider>
-              </ProtectedRoute>
-            }
-          />
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
+        <div className="d-flex flex-column vh-100">
+          <NavBar />
+          <div className="flex-grow-1 overflow-hidden">
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <ChatContextProvider>
+                      <Chat />
+                    </ChatContextProvider>
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+          </div>
+        </div>
       </AuthContextProvider>
     </BrowserRouter>
   );
