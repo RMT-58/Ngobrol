@@ -45,8 +45,8 @@
 // module.exports = setupSocket;
 
 const { Server } = require("socket.io");
-const ChatController = require("../controllers/chatController");
-const MessageController = require("../controllers/messageController");
+const ChatController = require("./controllers/chatController");
+const MessageController = require("./controllers/messageController");
 
 function setupSocket(server) {
   const io = new Server(server, {
